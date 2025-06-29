@@ -44,7 +44,7 @@ while True:
             json.dump(network_conf, f)
 
         # publish 발행
-        client.publish(topic, str(network_conf), qos=1)
+        client.publish(topic, str(network_conf), qos=1, retain=True)
         print(f"publishing {str(network_conf)} to {topic}") # 로그
 
     time.sleep(5)
