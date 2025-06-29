@@ -1,6 +1,7 @@
 import psutil
 import socket
 import json
+import requests
 
 def get_network_summary():
     """ 현재 디바이스 네트워크 인터페이스 모두 조회 """
@@ -15,6 +16,10 @@ def get_network_summary():
                 iface_info["mac"] = addr.address
             info.append(iface_info)
     return info
+
+def get_publish_ip():
+    ip = requests.get('https://api64.ipify.org?format=json').json()['ip']
+    return ip
 
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -34,12 +39,8 @@ def get_summary_used_search(local_ip:str ,summary: list):
 
     return False
 
-
-
-
 if __name__ == "__main__":
     network_summary = get_network_summary()
+    pub_ip = get_publish_ip()
     local_ip = get_local_ip()
     local_ip = get_summary_used_search(local_ip, network_summary)
-
-    print(local_ip)
