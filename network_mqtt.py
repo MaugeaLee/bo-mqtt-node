@@ -2,7 +2,6 @@ from dataclasses import dataclass
 
 import paho.mqtt.client as mqtt
 import network_reader
-import time
 import json
 import datetime
 
