@@ -86,6 +86,6 @@ class BoNetworkMQTT:
         self.client.loop_forever()
 
 if __name__ == "__main__":
-    client = BoNetworkMQTT()
+    client = BoNetworkMQTT(broker="nova-test.iptime.org", port=11883)
     client.connect()
     client.loop_forever()
