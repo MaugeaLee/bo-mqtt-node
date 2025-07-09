@@ -1,4 +1,6 @@
 from dataclasses import dataclass
+import os
+from dotenv import load_dotenv
 
 import paho.mqtt.client as mqtt
 import network_reader
@@ -19,10 +21,12 @@ class BoNetworkInterface:
 
 
 class BoNetworkMQTT:
-    def __init__(self, broker="localhost", port=1883):
+    def __init__(self, broker:str="localhost", port:int=1883, id:str="", pw:str=""):
         self.__network_conf = self.__config_open()
         self.broker = broker
         self.port = port
+        self.id = id
+        self.pw = pw
 
         # 클라이언트 생성
         self.client = mqtt.Client(client_id=self.__network_conf["device_name"])
@@ -77,6 +81,7 @@ class BoNetworkMQTT:
 
 
     def connect(self):
+        self.client.username_pw_set(username=self.id, password=self.pw)
         self.client.connect(self.broker, self.port)
 
     def disconnect(self):
@@ -85,7 +90,38 @@ class BoNetworkMQTT:
     def loop_forever(self):
         self.client.loop_forever()
 
+load_dotenv(dotenv_path='mqtt_secret.env')
+
+# 환경 변수 값 읽기
+MQTT_BROKER_HOST = os.getenv("MQTT_BROKER_HOST")
+MQTT_BROKER_PORT = os.getenv("MQTT_BROKER_PORT")
+MQTT_USERNAME = os.getenv("MQTT_USERNAME")
+MQTT_PASSWORD = os.getenv("MQTT_PASSWORD")
+
+missing_vars = []
+if not isinstance(MQTT_BROKER_HOST, str):
+    missing_vars.append(MQTT_BROKER_HOST)
+if not isinstance(MQTT_BROKER_PORT, str):
+    missing_vars.append(MQTT_BROKER_PORT)
+if not isinstance(MQTT_USERNAME, str):
+    missing_vars.append(MQTT_USERNAME)
+if not isinstance(MQTT_PASSWORD, str):
+    missing_vars.append(MQTT_PASSWORD)\
+
+if missing_vars:
+    error_message = f"❌ 서버 초기화 실패: 다음 필수 환경 변수가 누락되었습니다: {', '.join(missing_vars)}"
+    print(error_message)
+    raise ValueError(error_message)
+
+try:
+    MQTT_BROKER_PORT = int(MQTT_BROKER_PORT)
+except (ValueError, TypeError):
+    error_message = f'❌ 서버 초기화 실패: MQTT_BROKER_PORT가 유효한 숫자가 아닙니다: {MQTT_BROKER_PORT}'
+    print(error_message)
+    raise ValueError(error_message)
+
+
 if __name__ == "__main__":
-    client = BoNetworkMQTT(broker="nova-test.iptime.org", port=11883)
+    client = BoNetworkMQTT(broker=MQTT_BROKER_HOST, port=MQTT_BROKER_PORT, id=MQTT_USERNAME, pw=MQTT_PASSWORD)
     client.connect()
     client.loop_forever()
