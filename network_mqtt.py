@@ -59,16 +59,16 @@ class BoNetworkMQTT:
                 publish_ip, local_ip, mac, interface = self.__network_scanner()
 
                 # json 파일 갱신
-                self.__network_conf['publish_ip'] = publish_ip
-                self.__network_conf['local_ip'] = local_ip
-                self.__network_conf['mac'] = mac
-                self.__network_conf['interface'] = interface
-                self.__network_conf['time_stamp'] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.__network_conf["publish_ip"] = publish_ip
+                self.__network_conf["local_ip"] = local_ip
+                self.__network_conf["mac"] = mac
+                self.__network_conf["interface"] = interface
+                self.__network_conf["time_stamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                 with open('network_conf.json', 'w', encoding="utf-8") as f:
                     json.dump(self.__network_conf, f)
 
-                client.publish(self.__network_conf['response_topic'], str(self.__network_conf), qos=1, retain=True)
+                client.publish(self.__network_conf["response_topic"], str(self.__network_conf), qos=1, retain=True)
                 print("publishing " + str(self.__network_conf))
 
     @staticmethod
@@ -77,7 +77,7 @@ class BoNetworkMQTT:
         publish_ip = network_reader.get_publish_ip()  # 공용 ip 조회
         local_ip = network_reader.get_local_ip()
         local_ip = network_reader.get_summary_used_search(local_ip, network_summary)  # 사용중인 인터페이스 조회
-        return publish_ip, local_ip['ip'], local_ip['mac'], local_ip['interface']
+        return publish_ip, local_ip["ip"], local_ip["mac"], local_ip["interface"]
 
 
     def connect(self):
