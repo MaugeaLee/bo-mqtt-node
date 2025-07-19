@@ -1,0 +1,7 @@
+device_info:
+  device_name: "BO1A12" # device의 고유명
+  domain: "Bomac" # 소속 도메인
+
+topic:
+  request_topic: "request/device-status" # 리퀘스트 호출 토픽
+  response_topic: "response/BO1A11/device-status" # response 호출 토픽, device_name과 동기화 필요
