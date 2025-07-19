@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 import os
+import yaml
 from dotenv import load_dotenv
 
 import paho.mqtt.client as mqtt
@@ -22,54 +23,54 @@ class BoNetworkInterface:
 
 class BoNetworkMQTT:
     def __init__(self, broker:str="localhost", port:int=1883, id:str="", pw:str=""):
-        self.__network_conf = self.__config_open()
+        self.__network_conf = self.__config_open_yaml()
         self.broker = broker
         self.port = port
         self.id = id
         self.pw = pw
 
         # 클라이언트 생성
-        self.client = mqtt.Client(client_id=self.__network_conf["device_name"])
+        self.client = mqtt.Client(client_id=self.__network_conf["device_info"]["device_name"])
 
         # callback 선언
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
 
-    def __config_open(self):
-        """ network_conf.json 종속 파일을 open하는 함수"""
-        with open("network_conf.json", "r", encoding="utf-8") as f:
-            network_conf = json.load(f)
-        return network_conf
-
-    def __config_wirte(self, ):
-        """ network_conf.json 종속 파일을 덮어 씌우는 함수"""
-        with open("network_conf.json", "w", encoding="utf-8") as f:
-            pass
+    def __config_open_yaml(self):
+        try:
+            with open("network_const.yaml", "r", encoding="utf-8") as f:
+                try:
+                    network_conf = yaml.safe_load(f)
+                    return network_conf
+                except yaml.YAMLError as error:
+                    raise yaml.YAMLError(error) # yaml(상수) 파일이 open 되지 않으면 프로세스를 실행시킬 수 없습니다.
+        except FileNotFoundError as e:
+            raise FileNotFoundError(e)
 
     def on_connect(self, client, userdata, flags, rc):
-        client.subscribe(self.__network_conf["request_topic"])
+        client.subscribe(self.__network_conf["topic"]["request_topic"])
         print("Connected with result code " + str(rc))
 
     def on_message(self, client, userdata, msg):
         # request topic으로 전송이 왔을 시의 로직
-        if msg.topic == self.__network_conf["request_topic"]:
+        if msg.topic == self.__network_conf["topic"]["request_topic"]:
             request_signal = bool(msg.payload.decode("utf-8"))
             if request_signal == True:
                 # network 정보 스캔
                 publish_ip, local_ip, mac, interface = self.__network_scanner()
 
                 # json 파일 갱신
-                self.__network_conf["publish_ip"] = publish_ip
-                self.__network_conf["local_ip"] = local_ip
-                self.__network_conf["mac"] = mac
-                self.__network_conf["interface"] = interface
+                self.__network_conf["device_info"]["publish_ip"] = publish_ip
+                self.__network_conf["device_info"]["local_ip"] = local_ip
+                self.__network_conf["device_info"]["mac"] = mac
+                self.__network_conf["device_info"]["interface"] = interface
                 self.__network_conf["time_stamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-                with open('network_conf.json', 'w', encoding="utf-8") as f:
-                    json.dump(self.__network_conf, f)
+                # json 형태로 맞추기 위해 dumps 하고 publish 하기
+                response_data_json = json.dumps(self.__network_conf, indent=4, sort_keys=True)
+                client.publish(self.__network_conf["topic"]["response_topic"], response_data_json, qos=1, retain=False)
 
-                client.publish(self.__network_conf["response_topic"], str(self.__network_conf), qos=1, retain=True)
-                print("publishing " + str(self.__network_conf))
+                print("publishing " + response_data_json)
 
     @staticmethod
     def __network_scanner():
@@ -78,7 +79,6 @@ class BoNetworkMQTT:
         local_ip = network_reader.get_local_ip()
         local_ip = network_reader.get_summary_used_search(local_ip, network_summary)  # 사용중인 인터페이스 조회
         return publish_ip, local_ip["ip"], local_ip["mac"], local_ip["interface"]
-
 
     def connect(self):
         self.client.username_pw_set(username=self.id, password=self.pw)
