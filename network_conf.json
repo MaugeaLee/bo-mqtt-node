@@ -1,1 +1,0 @@
-{"domain": "Bomac", "device_name": "BO1A11", "publish_ip": "125.139.12.216", "local_ip": "192.168.0.2", "mac": "3c:06:30:40:c1:3e", "interface": "en0", "time_stamp": "2025-06-29 18:51:29", "request_topic": "request/device-status", "response_topic": "response/BO1A11/device-status"}
