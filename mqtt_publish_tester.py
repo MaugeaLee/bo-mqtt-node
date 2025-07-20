@@ -4,6 +4,8 @@
 # 본 스크립트는 반드시 단독으로 사용됩니다.
 # 본 스크립트는 network_mqtt.py 모듈과 network_reader.py 모듈에 의존하고 있습니다.
 # 본 스크립트는 어떠한 의존성 파일도 수정해서는 안됩니다.
+# 본 스크립트는 ThreadPoolExecutor로 관리되는 NUM_DEVICE 개의 mqtt client를 생성하고 loop를 동작시킵니다.
+# mqtt client의 메세지가 publish 되지 않거나 문제 발생시 network_mqtt.py 스크립트를 수정하는 것이 빠를 것 입니다.
 from network_mqtt import *
 from concurrent.futures import ThreadPoolExecutor
 import time
