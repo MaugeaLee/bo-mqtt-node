@@ -22,19 +22,24 @@ class BoNetworkInterface:
 
 
 class BoNetworkMQTT:
-    def __init__(self, broker:str="localhost", port:int=1883, id:str="", pw:str=""):
-        self.__network_conf = self.__config_open_yaml()
+    def __init__(self, broker:str="localhost", port:int=1883, id:str="", pw:str="", identity:str|None=None):
+        self.network_conf = self.__config_open_yaml()
         self.broker = broker
         self.port = port
         self.id = id
         self.pw = pw
+        self.identity = identity
 
         # 클라이언트 생성
-        self.client = mqtt.Client(client_id=self.__network_conf["device_info"]["device_name"])
+        if not identity:
+            self.client = mqtt.Client(client_id=self.network_conf["device_info"]["device_name"])
+        else:
+            self.client = mqtt.Client(client_id=identity)
 
         # callback 선언
         self.client.on_connect = self.on_connect
         self.client.on_message = self.on_message
+        self.client.on_disconnect = self.on_disconnect
 
     def __config_open_yaml(self):
         try:
@@ -48,29 +53,38 @@ class BoNetworkMQTT:
             raise FileNotFoundError(e)
 
     def on_connect(self, client, userdata, flags, rc):
-        client.subscribe(self.__network_conf["topic"]["request_topic"])
+        client.subscribe(self.network_conf["topic"]["request_topic"])
         print("Connected with result code " + str(rc))
+
+    def on_disconnect(self, client, userdata, rc):
+        client.unsubscribe(self.network_conf["topic"]["request_topic"])
+        if rc == 0:
+            print("Disconnected successfully")
+        elif rc == 7:
+            print("MQTT에 예상치 못한 Disconnected error 발생 with code " + str(rc))
 
     def on_message(self, client, userdata, msg):
         # request topic으로 전송이 왔을 시의 로직
-        if msg.topic == self.__network_conf["topic"]["request_topic"]:
+        if msg.topic == self.network_conf["topic"]["request_topic"]:
             request_signal = bool(msg.payload.decode("utf-8"))
             if request_signal == True:
                 # network 정보 스캔
                 publish_ip, local_ip, mac, interface = self.__network_scanner()
 
                 # json 파일 갱신
-                self.__network_conf["device_info"]["publish_ip"] = publish_ip
-                self.__network_conf["device_info"]["local_ip"] = local_ip
-                self.__network_conf["device_info"]["mac"] = mac
-                self.__network_conf["device_info"]["interface"] = interface
-                self.__network_conf["time_stamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                self.network_conf["device_info"]["publish_ip"] = publish_ip
+                self.network_conf["device_info"]["local_ip"] = local_ip
+                self.network_conf["device_info"]["mac"] = mac
+                self.network_conf["device_info"]["interface"] = interface
+                self.network_conf["time_stamp"] = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                 # json 형태로 맞추기 위해 dumps 하고 publish 하기
-                response_data_json = json.dumps(self.__network_conf, indent=4, sort_keys=True)
-                client.publish(self.__network_conf["topic"]["response_topic"], response_data_json, qos=1, retain=False)
+                response_data_json = json.dumps(self.network_conf, indent=4, sort_keys=True)
+                client.publish(self.network_conf["topic"]["response_topic"], response_data_json, qos=1, retain=False)
 
-                print("publishing " + response_data_json)
+                print(f"publishing {self.network_conf['device_info']['domain']} "
+                      f"{self.network_conf['device_info']['device_name']} - {self.network_conf['device_info']['local_ip']} - "
+                      f"{self.network_conf['device_info']['mac']}")
 
     @staticmethod
     def __network_scanner():
